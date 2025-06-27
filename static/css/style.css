@@ -1,0 +1,270 @@
+/* ------------------------- */
+/* --- 1. Root & Globals --- */
+/* ------------------------- */
+
+:root {
+    --primary-color: #4A90E2;    /* A softer, modern blue */
+    --primary-hover: #357ABD;
+    --success-color: #27AE60;    /* Vibrant green */
+    --warning-color: #F39C12;    /* Amber/Orange */
+    --danger-color: #E74C3C;     /* Soft red */
+    --info-color: #5DADE2;       /* Light blue for team leaves */
+    --light-gray: #F8F9FA;      /* Page background */
+    --border-color: #EAECEF;
+    --text-primary: #2C3E50;
+    --text-secondary: #5D6D7E;
+    --font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--light-gray);
+    font-family: var(--font-family);
+    color: var(--text-primary);
+}
+
+.container, .container-fluid {
+    max-width: 1600px;
+}
+
+/* ------------------------- */
+/* --- 2. Dashboard Layout & Header --- */
+/* ------------------------- */
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.dashboard-header h2 {
+    font-weight: 700;
+    font-size: 2.25rem;
+    color: var(--text-primary);
+}
+
+.btn-apply-leave {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.btn-apply-leave:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ------------------------- */
+/* --- 3. Calendar Styling --- */
+/* ------------------------- */
+
+#calendar {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 7px 30px -10px rgba(150, 170, 180, 0.5);
+}
+
+/* Calendar Header Toolbar */
+.fc-header-toolbar {
+    margin-bottom: 1.5rem !important;
+}
+
+.fc-header-toolbar .fc-button {
+    background-color: #fff;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+    transition: all 0.2s ease;
+}
+
+.fc-header-toolbar .fc-button:hover {
+    background-color: var(--light-gray);
+    border-color: #d1d5db;
+}
+
+.fc-header-toolbar .fc-button-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+.fc-header-toolbar .fc-button-primary:not(:disabled):active,
+.fc-header-toolbar .fc-button-primary:not(:disabled).fc-button-active {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Calendar Cells & Today */
+.fc-daygrid-day-number {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.fc-day-today {
+    background-color: rgba(74, 144, 226, 0.07) !important;
+}
+.fc-day-today .fc-daygrid-day-number {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Calendar Events */
+.fc-event {
+    border: none;
+    color: #fff;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.fc-event:hover {
+    opacity: 0.85;
+}
+
+.fc-event-main-frame {
+    /* To vertically align text inside the event badge */
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.fc-event-approved, .fc-event-my-approved {
+    background-color: var(--success-color);
+}
+.fc-event-pending, .fc-event-my-pending {
+    background-color: var(--warning-color);
+}
+.fc-event-rejected, .fc-event-my-rejected {
+    background-color: var(--danger-color);
+}
+.fc-event-team-approved {
+    background-color: var(--info-color) !important;
+}
+
+/* Holiday/Critical days background event */
+.fc-bg-event {
+    background-color: #ff0000 !important;
+    opacity: 0.7;
+}
+
+/* ------------------------- */
+/* --- 4. Right Side Panel --- */
+/* ------------------------- */
+
+.right-panel .info-card {
+    background: #fff;
+    padding: 25px;
+    margin-bottom: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 7px 30px -10px rgba(150, 170, 180, 0.5);
+}
+
+.info-card h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* 'My Leaves Summary' card */
+.summary-card p {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+.summary-card p strong {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.summary-card p span {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+
+/* 'Recent Leaves' & 'Team Leaves' cards */
+.recent-leaves-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.recent-leaves-list li {
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+}
+
+.recent-leaves-list li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.recent-leaves-list li:first-child {
+    padding-top: 5px;
+}
+
+/* Status indicator dot */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+.status-dot.approved { background-color: var(--success-color); }
+.status-dot.rejected { background-color: var(--danger-color); }
+.status-dot.teammate { background-color: var(--info-color); }
+
+.leave-item-details strong {
+    display: block;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+
+.leave-item-details small {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* In static/css/style.css */
+/* Add this inside the "2. Dashboard Layout & Header" section */
+
+h2.greeting {
+    font-weight: 700;
+    font-size: 2.25rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+p.sub-greeting {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+    max-width: 600px; /* Prevents the message from being too wide */
+}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <h4 class="greeting">{{ greeting_data.greeting }}</h4>
+        <p class="sub-greeting">{{ greeting_data.holiday_message }}</p>
+    </div>
+    <a href="{{ url_for('employee.apply_leave') }}" class="btn btn-apply-leave">Apply for Leave</a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div id='calendar' style="height: 600px;"></div>
+    </div>
+    <div class="col-md-4 right-panel">
+        <!-- My Leaves Summary Card -->
+        <div class="info-card summary-card">
+            {% include '_summary_panel.html' %}
+        </div>
+
+        <!-- My Recent Leaves Card -->
+        <div class="info-card">
+            <h4>My Recent Leaves</h4>
+            {% if my_leaves %}
+                <ul class="recent-leaves-list">
+                    {% for leave in my_leaves %}
+                    <li>
+                        <div class="status-dot {% if leave.status == LeaveStatus.APPROVED %}approved{% elif leave.status == LeaveStatus.REJECTED %}rejected{% else %}pending{% endif %}"></div>
+                        <div class="leave-item-details">
+                            <strong>{{ leave.leave_type.value }}</strong>
+                            <small>{{ leave.start_date.strftime('%b %d') }} - {{ leave.end_date.strftime('%b %d') }} | Status: {{ leave.status.value }}</small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No recent leave applications.</p>
+            {% endif %}
+        </div>
+
+        <!-- My Teammates' Recent Leaves Card -->
+        <div class="info-card">
+            <h4>My Teammates' Recent Leaves</h4>
+            {% if team_leaves %}
+                <ul class="recent-leaves-list">
+                    {% for leave in team_leaves %}
+                    <li>
+                        <div class="status-dot teammate"></div>
+                        <div class="leave-item-details">
+                            <strong>{{ leave.employee.name }} - {{ leave.leave_type.value }}</strong>
+                            <small>{{ leave.start_date.strftime('%b %d') }} - {{ leave.end_date.strftime('%b %d') }}</small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No team leaves to display.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Leave Details -->
+<div class="modal fade" id="leaveDetailModal" tabindex="-1" aria-labelledby="leaveDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveDetailModalLabel">Leave Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Applicant:</strong> <span id="modal-applicant"></span></p>
+                <p><strong>Type:</strong> <span id="modal-type"></span></p>
+                <p><strong>Dates:</strong> <span id="modal-dates"></span></p>
+                <p><strong>Status:</strong> <span id="modal-status"></span></p>
+                <p><strong>Reason:</strong> <span id="modal-reason"></span></p>
+                <div id="modal-document-section" style="display:none;">
+                    <p><strong>Attachment:</strong> <a id="modal-document-link" href="#" target="_blank">View Document</a></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '{{ url_for("employee.get_leaves_for_calendar") }}', // Endpoint to fetch events
+            eventClick: function(info) {
+                var event = info.event;
+                var extendedProps = event.extendedProps;
+
+                if (extendedProps.is_holiday) {
+                    $('#leaveDetailModalLabel').text('Holiday / Critical Day Details');
+                    $('#modal-applicant').text('');
+                    $('#modal-type').text(event.title);
+                    $('#modal-dates').text(event.start.toLocaleDateString() + (event.end ? ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString() : '')); // Adjust for exclusive end date
+                    $('#modal-status').text(extendedProps.is_critical ? 'Critical Day' : 'Public Holiday');
+                    $('#modal-reason').text('');
+                    $('#modal-document-section').hide();
+                } else {
+                    $('#leaveDetailModalLabel').text('Leave Details');
+                    $('#modal-applicant').text(event.title.split(' - ')[0]);
+                    $('#modal-type').text(extendedProps.type);
+                    $('#modal-dates').text(event.start.toLocaleDateString() + ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString()); // FullCalendar end date is exclusive
+                    $('#modal-status').text(extendedProps.status);
+                    $('#modal-reason').text(extendedProps.reason);
+
+                    if (extendedProps.document_path) {
+                        $('#modal-document-link').attr('href', '/static/uploads/' + extendedProps.document_path);
+                        $('#modal-document-section').show();
+                    } else {
+                        $('#modal-document-section').hide();
+                    }
+                }
+                
+                var leaveDetailModal = new bootstrap.Modal(document.getElementById('leaveDetailModal'));
+                leaveDetailModal.show();
+            }
+        });
+        calendar.render();
+    });
+</script>
+{% endblock %}

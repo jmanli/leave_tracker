@@ -1,0 +1,20 @@
+<div class="summary-box">
+{% if current_user.is_employee() %}
+    <h4>My Leaves Summary</h4>
+    <p><strong>Leaves This Month:</strong> <span>{{ summary.total_leaves_month }} days</span></p>
+    <p><strong>Pending Leaves:</strong> <span>{{ summary.pending_leaves_count }} days</span></p>
+    <p><strong>Leaves This Year:</strong> <span>{{ summary.total_leaves_year }} days</span></p>
+    <p><strong>Leaves Year to Date (Approved):</strong> <span>{{ summary.leaves_ytd_approved }} days</span></p>
+    <p><strong>Leaves This Year (Excluding Sick Leave):</strong> <span>{{ summary.leaves_ytd_less_sl }} days</span></p>
+    <p><strong>Vacation Leaves YTD:</strong> <span>{{ summary.vl_ytd }} days</span></p>
+    <p><strong>Sick Leaves YTD:</strong> <span>{{ summary.sl_ytd }} days</span></p>
+{% elif current_user.is_manager() %}
+    <h4>My Team Leaves Summary</h4>
+    <p><strong>Team Leaves This Month:</strong> <span>{{ team_summary.total_team_leaves_month }} days</span></p>
+    <p><strong>Team Pending Leaves:</strong> <span>{{ team_summary.team_pending_leaves_count }} days</span></p>
+    <p><strong>Team Leaves This Year:</strong> <span>{{ team_summary.total_team_leaves_year }} days</span></p>
+    <p><strong>Team Approved Leaves:</strong> <span>{{ team_summary.team_approved_leaves_count }} days</span></p>
+    <p><strong>Team Vacation Leaves YTD:</strong> <span>{{ team_summary.team_vl_ytd }} days</span></p>
+    <p><strong>Team Sick Leaves YTD:</strong> <span>{{ team_summary.team_sl_ytd }} days</span></p>
+{% endif %}
+</div>

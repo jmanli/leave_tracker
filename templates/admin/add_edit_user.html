@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">{{ 'Edit User' if is_edit else 'Add New User' }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% for error in form.name.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control") }}
+                        {% for error in form.email.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.role.label(class="form-label") }}
+                        {{ form.role(class="form-select") }}
+                        {% for error in form.role.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3" id="manager_field">
+                        {{ form.manager_id.label(class="form-label") }}
+                        {{ form.manager_id(class="form-select") }}
+                        {% for error in form.manager_id.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", placeholder=('Leave blank to keep current password' if is_edit else 'Temporary Password')) }}
+                        {% for error in form.password.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control") }}
+                        {% for error in form.confirm_password.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleField = document.getElementById('role');
+        const managerFieldDiv = document.getElementById('manager_field');
+
+        function toggleManagerField() {
+            if (roleField.value === 'EMPLOYEE') {
+                managerFieldDiv.style.display = 'block';
+            } else {
+                managerFieldDiv.style.display = 'none';
+                document.getElementById('manager_id').value = '0'; // Reset manager selection
+            }
+        }
+
+        roleField.addEventListener('change', toggleManagerField);
+        toggleManagerField(); // Call on load to set initial state
+    });
+</script>
+{% endblock %}

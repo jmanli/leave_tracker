@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="greeting">{{ greeting_data.greeting }}</h2>
+        <p class="sub-greeting">{{ greeting_data.holiday_message }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div id='calendar' style="height: 600px;"></div>
+    </div>
+    <div class="col-md-4 right-panel">
+        <!-- My Leaves Summary Card -->
+        <div class="info-card summary-card">
+            {% include '_summary_panel.html' %}
+        </div>
+        <div class="info-card">
+            <h4>Pending Leave Applications</h4>
+            {% if pending_leaves %}
+                <ul class="recent-leaves-list">
+                    {% for leave in pending_leaves %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ leave.employee.name }}</strong>
+                            <br />
+                            <small>{{ leave.leave_type.value }} ({{ leave.start_date.strftime('%b %d') }} - {{ leave.end_date.strftime('%b %d') }})</small>
+                            <br />
+                            <small>Applied on: {{ leave.applied_at.strftime('%Y-%m-%d') }}</small>
+                            <br />
+                            <small>Reason: {{ leave.reason }}</small>
+                            {% if leave.document_path %}
+                                <small>Attachment: <a href="{{ url_for('static', filename='uploads/' + leave.document_path) }}" target="_blank">View Document</a></small>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <form action="{{ url_for('manager.approve_leave', leave_id=leave.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            </form>
+                            <a href="{{ url_for('manager.reject_leave', leave_id=leave.id) }}" class="btn btn-sm btn-danger">Reject</a>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No pending leave applications.</p>
+            {% endif %}
+        </div>
+        
+        <div class="info-card">
+            <h4>Recent Approved/Rejected Leaves</h4>
+            {% if recent_leaves %}
+                <ul class="recent-leaves-list">
+                    {% for leave in recent_leaves %}
+                    <li>
+                        <div class="status-dot teammate"></div>
+                        <div class="leave-item-details">
+                            <strong>{{ leave.employee.name }} - {{ leave.leave_type.value }} ({{ leave.start_date.strftime('%b %d') }} - {{ leave.end_date.strftime('%b %d') }})</strong>
+                            <small>Status: <span class="badge {% if leave.status == LeaveStatus.APPROVED %}bg-success{% else %}bg-danger{% endif %}">{{ leave.status.value }}</span> on {{ leave.approved_at.strftime('%Y-%m-%d') }} by {{ leave.approver.name }}</small>
+                            {% if leave.rejection_reason %}
+                                <p class="mt-2 mb-0 text-muted small">Rejection Reason: {{ leave.rejection_reason }}</p>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No recent approved/rejected leaves.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Leave Details -->
+<div class="modal fade" id="leaveDetailModal" tabindex="-1" aria-labelledby="leaveDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveDetailModalLabel">Leave Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Applicant:</strong> <span id="modal-applicant"></span></p>
+                <p><strong>Type:</strong> <span id="modal-type"></span></p>
+                <p><strong>Dates:</strong> <span id="modal-dates"></span></p>
+                <p><strong>Status:</strong> <span id="modal-status"></span></p>
+                <p><strong>Reason:</strong> <span id="modal-reason"></span></p>
+                <div id="modal-document-section" style="display:none;">
+                    <p><strong>Attachment:</strong> <a id="modal-document-link" href="#" target="_blank">View Document</a></p>
+                </div>
+            </div>
+            <div class="modal-footer" id="modal-actions-footer">
+                <!-- Action buttons for manager will go here if leave is pending -->
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '{{ url_for("manager.get_team_leaves_for_calendar") }}', // Endpoint to fetch events
+            eventClick: function(info) {
+                var event = info.event;
+                var extendedProps = event.extendedProps;
+                var modalActionsFooter = $('#modal-actions-footer');
+                modalActionsFooter.empty(); // Clear previous action buttons
+
+                if (extendedProps.is_holiday) {
+                    $('#leaveDetailModalLabel').text('Holiday / Critical Day Details');
+                    $('#modal-applicant').text('');
+                    $('#modal-type').text(event.title);
+                    $('#modal-dates').text(event.start.toLocaleDateString() + (event.end ? ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString() : '')); // Adjust for exclusive end date
+                    $('#modal-status').text(extendedProps.is_critical ? 'Critical Day' : 'Public Holiday');
+                    $('#modal-reason').text('');
+                    $('#modal-document-section').hide();
+                } else {
+                    $('#leaveDetailModalLabel').text('Leave Details');
+                    $('#modal-applicant').text(event.title.split(' - ')[0]);
+                    $('#modal-type').text(extendedProps.type);
+                    $('#modal-dates').text(event.start.toLocaleDateString() + ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString()); // FullCalendar end date is exclusive
+                    $('#modal-status').text(extendedProps.status);
+                    $('#modal-reason').text(extendedProps.reason);
+
+                    if (extendedProps.document_path) {
+                        $('#modal-document-link').attr('href', '/static/uploads/' + extendedProps.document_path);
+                        $('#modal-document-section').show();
+                    } else {
+                        $('#modal-document-section').hide();
+                    }
+
+                    // Manager specific actions for pending leaves
+                    if (extendedProps.is_manager_view && extendedProps.status === 'Pending') {
+                        modalActionsFooter.append(`
+                            <form action="/manager/leaves/approve/${extendedProps.leave_id}" method="POST" class="d-inline me-2">
+                                <button type="submit" class="btn btn-success">Approve</button>
+                            </form>
+                            <a href="/manager/leaves/reject/${extendedProps.leave_id}" class="btn btn-danger me-2">Reject</a>
+                        `);
+                    }
+                }
+
+                modalActionsFooter.append('<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>');
+                
+                var leaveDetailModal = new bootstrap.Modal(document.getElementById('leaveDetailModal'));
+                leaveDetailModal.show();
+            }
+        });
+        calendar.render();
+    });
+</script>
+{% endblock %}

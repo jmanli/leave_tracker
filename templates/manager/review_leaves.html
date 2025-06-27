@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">Reject Leave Application for {{ leave.employee.name }}</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Leave Type:</strong> {{ leave.leave_type.value }}</p>
+                <p><strong>Dates:</strong> {{ leave.start_date.strftime('%Y-%m-%d') }} to {{ leave.end_date.strftime('%Y-%m-%d') }}</p>
+                <p><strong>Reason:</strong> {{ leave.reason }}</p>
+                </form>
+                {% if leave.document_path %}
+                    <p><strong>Attachment:</strong> <a href="{{ url_for('static', filename='uploads/' + leave.document_path) }}" target="_blank">View Document</a></p>
+                {% endif %}
+                <hr>
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.rejection_reason.label(class="form-label") }}
+                        {{ form.rejection_reason(class="form-control", rows=5) }}
+                        {% for error in form.rejection_reason.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-danger") }}
+                        <a href="{{ url_for('manager.dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

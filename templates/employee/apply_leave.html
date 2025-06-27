@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">Apply for Leave</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.leave_type.label(class="form-label") }}
+                        {{ form.leave_type(class="form-select", id="leave_type_select") }}
+                        {% for error in form.leave_type.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.start_date.label(class="form-label") }}
+                        {{ form.start_date(class="form-control date-picker") }}
+                        {% for error in form.start_date.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.end_date.label(class="form-label") }}
+                        {{ form.end_date(class="form-control date-picker") }}
+                        {% for error in form.end_date.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.reason.label(class="form-label") }}
+                        {{ form.reason(class="form-control", rows=5) }}
+                        {% for error in form.reason.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3" id="document_upload_field">
+                        {{ form.document.label(class="form-label") }}
+                        {{ form.document(class="form-control") }}
+                        {% for error in form.document.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                        <small class="form-text text-muted">Only apply for Sick Leave.</small>
+                    </div>
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const leaveTypeSelect = document.getElementById('leave_type_select');
+        const documentUploadField = document.getElementById('document_upload_field');
+
+        function toggleDocumentUpload() {
+            if (leaveTypeSelect.value === 'SICK') {
+                documentUploadField.style.display = 'block';
+            } else {
+                documentUploadField.style.display = 'none';
+            }
+        }
+
+        leaveTypeSelect.addEventListener('change', toggleDocumentUpload);
+        toggleDocumentUpload(); // Call on load to set initial state
+
+        // Initialize date pickers if your browser doesn't natively support type="date" well
+        // For production, consider a custom JS datepicker if needed for consistency.
+        // Modern browsers usually handle type="date" well.
+    });
+</script>
+{% endblock %}
