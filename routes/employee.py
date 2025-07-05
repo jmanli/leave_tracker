@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 import os
 import uuid
 import datetime
+import openai
 
 employee_bp = Blueprint('employee', __name__, url_prefix='/employee')
 
@@ -199,3 +200,66 @@ def get_leaves_for_calendar():
         })
 
     return jsonify(events)
+
+@employee_bp.route('/chat', methods=['POST'])
+@login_required
+@employee_required
+def chat():
+    """Handles chat requests, calls the GenAI, and returns a response."""
+    data = request.json
+    user_message = data.get('message')
+    chat_history = data.get('history', [])
+
+    if not user_message:
+        return jsonify({"error": "No message provided."}), 400
+
+    try:
+        # --- The core logic is to build a good prompt ---
+        openai.api_key = os.environ.get("OPENAI_API_KEY")
+        if not openai.api_key:
+            return jsonify({"error": "AI assistant is not configured."}), 500
+
+        # Get context from our application's database
+        today = datetime.date.today()
+        future_date = today + datetime.timedelta(days=180)
+        company_holidays = Holiday.query.filter(Holiday.is_critical == False, Holiday.date.between(today, future_date)).all()
+        company_critical_days = Holiday.query.filter(Holiday.is_critical == True, Holiday.date.between(today, future_date)).all()
+
+        # This is our powerful system prompt that defines the AI's persona
+        system_prompt = f"""
+        You are 'Leavy', a friendly and brilliant AI assistant integrated into a company's Leave Tracker app.
+        You have two expert personas you must embody:
+
+        1.  **Expert HR Leave Planner:** When asked about leave schedules, filing dates, or long weekends, you MUST use the provided company data. Your goal is to help employees maximize their vacation time by identifying strategic days to take leave.
+        2.  **Inspirational Travel Advisor:** When asked for vacation ideas, destinations, or travel tips, you should provide creative and helpful suggestions specifically for travel within the Philippines.
+
+        **CONTEXT FOR YOUR HR PERSONA:**
+        - Today's Date: {today.strftime('%Y-%m-%d')}
+        - Company Holidays (days off): {', '.join([f'{h.name} on {h.date.strftime("%Y-%m-%d")}' for h in company_holidays]) or 'None provided.'}
+        - Company Critical Days (LEAVE IS NOT ALLOWED): {', '.join([f'{c.name} on {c.date.strftime("%Y-%m-%d")}' for c in company_critical_days]) or 'None provided.'}
+        - You ALSO know about all official Philippine public holidays.
+
+        **INSTRUCTIONS:**
+        - Always respond in a friendly, conversational, and encouraging tone.
+        - Use Markdown for formatting (headings, lists, bold text) to make your answers easy to read.
+        - Keep responses concise and to the point.
+        - Infer the user's intent to decide which persona to use. If they ask "Where and when should I take a vacation?", use BOTH personas.
+        """
+
+        # Construct the message history for the API call
+        messages = [{"role": "system", "content": system_prompt}] + chat_history
+        messages.append({"role": "user", "content": user_message})
+
+        # Call the API
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.7
+        )
+
+        ai_reply = response.choices[0].message.content
+        return jsonify({"reply": ai_reply})
+
+    except Exception as e:
+        print(f"Error in /chat route: {e}")
+        return jsonify({"error": "Sorry, I'm having trouble connecting to my brain right now. Please try again in a moment."}), 500

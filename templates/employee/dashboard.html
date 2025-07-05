@@ -132,6 +132,88 @@
             }
         });
         calendar.render();
+
+        // ===================================
+        // 2. AI CHAT LOGIC (NEW)
+        // ===================================
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatBody = document.getElementById('chat-body');
+        let chatHistory = []; // To store the conversation
+
+        // Function to add a message to the UI
+        function addMessage(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', sender);
+
+            const contentElement = document.createElement('div');
+            contentElement.classList.add('message-content');
+
+            // Use marked.js to render markdown from the assistant
+            if (sender === 'assistant') {
+                contentElement.innerHTML = marked.parse(message);
+            } else {
+                contentElement.textContent = message;
+            }
+
+            messageElement.appendChild(contentElement);
+            chatMessages.appendChild(messageElement);
+            // Scroll to the bottom
+            chatBody.scrollTop = chatBody.scrollHeight;
+            return messageElement; // Return the element for potential modification (e.g., removing typing indicator)
+        }
+
+        // Handle form submission
+        chatForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            // Display user's message
+            addMessage('user', userMessage);
+            chatHistory.push({ role: 'user', content: userMessage });
+
+            // Clear input and show typing indicator
+            chatInput.value = '';
+            const typingIndicator = addMessage('assistant', '<div class="typing-indicator"><span></span><span></span><span></span></div>');
+
+            try {
+                const response = await fetch('{{ url_for("employee.chat") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        history: chatHistory.slice(0, -1) // Send history *before* the latest message
+                    })
+                });
+
+                // Remove typing indicator
+                typingIndicator.remove();
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Network response was not ok');
+                }
+
+                const data = await response.json();
+                const aiReply = data.reply;
+
+                // Display AI's message
+                addMessage('assistant', aiReply);
+                chatHistory.push({ role: 'assistant', content: aiReply });
+
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessage('assistant', `😥 Sorry, an error occurred: ${error.message}`);
+            }
+        });
+
+        // Add initial greeting to chat history
+        const initialGreeting = "Hello! I'm Leavy. You can ask me for advice on the best days to file leave, or for vacation ideas in the Philippines. How can I help you today?";
+        chatHistory.push({role: 'assistant', content: initialGreeting});
     });
 </script>
 {% endblock %}
