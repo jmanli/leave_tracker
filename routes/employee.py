@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 import os
 import uuid
 import datetime
-import openai
+from openai import AzureOpenAI
 
 employee_bp = Blueprint('employee', __name__, url_prefix='/employee')
 
@@ -214,10 +214,13 @@ def chat():
         return jsonify({"error": "No message provided."}), 400
 
     try:
-        # --- The core logic is to build a good prompt ---
-        openai.api_key = os.environ.get("OPENAI_API_KEY")
-        if not openai.api_key:
-            return jsonify({"error": "AI assistant is not configured."}), 500
+        # --- Load Azure OpenAI configuration from environment variables ---
+        endpoint = os.getenv("ENDPOINT_URL")
+        deployment = os.getenv("DEPLOYMENT_NAME")
+        subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
+        
+        if not all([endpoint, deployment, subscription_key]):
+            return jsonify({"error": "Azure OpenAI configuration is missing. Please check your environment variables."}), 500
 
         # Get context from our application's database
         today = datetime.date.today()
@@ -250,9 +253,16 @@ def chat():
         messages = [{"role": "system", "content": system_prompt}] + chat_history
         messages.append({"role": "user", "content": user_message})
 
-        # Call the API
-        response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
+        # Initialize Azure OpenAI client
+        client = AzureOpenAI(
+            azure_endpoint=endpoint,
+            api_key=subscription_key,
+            api_version="2024-02-15-preview"
+        )
+
+        # Call the Azure OpenAI API
+        response = client.chat.completions.create(
+            model=deployment,
             messages=messages,
             temperature=0.7
         )
