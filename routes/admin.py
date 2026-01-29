@@ -109,14 +109,18 @@ def delete_user(user_id):
         flash("Cannot delete the last admin user.", "danger")
         return redirect(url_for('admin.manage_users'))
     
+    # Import Leave model
+    from models import Leave
+    
     # Disassociate managed employees
     for emp in user.managed_employees:
-        emp.manager_id = None # Or reassign to another default manager if desired
+        emp.manager_id = None
     
-    # Delete related leaves ( Cascading delete in DB is better for this via relationship)
-    # The current definition of Leave model doesn't have cascade delete configured.
-    # For a real app, you'd want to handle orphans or configure SQLAlchemy cascade delete.
-    # For now, we'll just delete the user. Make sure to implement cascade if this is deployed.
+    # Delete all leave applications by this user
+    Leave.query.filter_by(user_id=user_id).delete()
+    
+    # Update leaves approved by this user (set approved_by_id to None)
+    Leave.query.filter_by(approved_by_id=user_id).update({Leave.approved_by_id: None})
     
     db.session.delete(user)
     db.session.commit()
