@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Team Leaves Report</h2>
+        <p class="text-muted">{{ filter_description }} - {{ status_filter|title if status_filter != 'all' else 'All Status' }}</p>
+    </div>
+    <div>
+        <a href="{{ url_for('manager.dashboard') }}" class="btn btn-secondary me-2">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('manager.export_team_leaves', filter_type=filter_type, status=status_filter, start_date=start_date, end_date=end_date, format='csv') }}" class="btn btn-success">
+            <i class="bi bi-download"></i> Download CSV
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if leaves %}
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Employee</th>
+                        <th>Email</th>
+                        <th>Leave Type</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                        <th>Applied At</th>
+                        <th>Approver</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave in leaves %}
+                    <tr>
+                        <td><strong>{{ leave.employee.name }}</strong></td>
+                        <td>{{ leave.employee.email }}</td>
+                        <td>{{ leave.leave_type.value }}</td>
+                        <td>{{ leave.start_date.strftime('%b %d, %Y') }}</td>
+                        <td>{{ leave.end_date.strftime('%b %d, %Y') }}</td>
+                        <td>{{ (leave.end_date - leave.start_date).days + 1 }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if leave.status == LeaveStatus.APPROVED %}bg-success
+                                {% elif leave.status == LeaveStatus.PENDING %}bg-warning text-dark
+                                {% elif leave.status == LeaveStatus.REJECTED %}bg-danger
+                                {% endif %}">
+                                {{ leave.status.value }}
+                            </span>
+                        </td>
+                        <td>{{ leave.applied_at.strftime('%b %d, %Y %I:%M %p') if leave.applied_at else 'N/A' }}</td>
+                        <td>{{ leave.approver.name if leave.approver else 'N/A' }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#leaveDetailModal{{ leave.id }}">
+                                <i class="bi bi-eye"></i> Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-3">
+            <p class="text-muted"><strong>Total Records:</strong> {{ leaves|length }}</p>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No leave records found for the selected filters.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modals for Leave Details -->
+{% for leave in leaves %}
+<div class="modal fade" id="leaveDetailModal{{ leave.id }}" tabindex="-1" aria-labelledby="leaveDetailModalLabel{{ leave.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveDetailModalLabel{{ leave.id }}">Leave Details - {{ leave.employee.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Employee:</strong></div>
+                    <div class="col-8">{{ leave.employee.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Email:</strong></div>
+                    <div class="col-8">{{ leave.employee.email }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Leave Type:</strong></div>
+                    <div class="col-8">{{ leave.leave_type.value }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Start Date:</strong></div>
+                    <div class="col-8">{{ leave.start_date.strftime('%B %d, %Y') }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>End Date:</strong></div>
+                    <div class="col-8">{{ leave.end_date.strftime('%B %d, %Y') }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Duration:</strong></div>
+                    <div class="col-8">{{ (leave.end_date - leave.start_date).days + 1 }} day(s)</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Status:</strong></div>
+                    <div class="col-8">
+                        <span class="badge 
+                            {% if leave.status == LeaveStatus.APPROVED %}bg-success
+                            {% elif leave.status == LeaveStatus.PENDING %}bg-warning text-dark
+                            {% elif leave.status == LeaveStatus.REJECTED %}bg-danger
+                            {% endif %}">
+                            {{ leave.status.value }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Reason:</strong></div>
+                    <div class="col-8">{{ leave.reason if leave.reason else 'N/A' }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Applied At:</strong></div>
+                    <div class="col-8">{{ leave.applied_at.strftime('%B %d, %Y %I:%M %p') if leave.applied_at else 'N/A' }}</div>
+                </div>
+                {% if leave.approver %}
+                <div class="row mb-2">
+                    <div class="col-4"><strong>{{ 'Approved' if leave.status == LeaveStatus.APPROVED else 'Rejected' }} By:</strong></div>
+                    <div class="col-8">{{ leave.approver.name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>{{ 'Approved' if leave.status == LeaveStatus.APPROVED else 'Rejected' }} At:</strong></div>
+                    <div class="col-8">{{ leave.approved_at.strftime('%B %d, %Y %I:%M %p') if leave.approved_at else 'N/A' }}</div>
+                </div>
+                {% endif %}
+                {% if leave.rejection_reason %}
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Rejection Reason:</strong></div>
+                    <div class="col-8 text-danger">{{ leave.rejection_reason }}</div>
+                </div>
+                {% endif %}
+                {% if leave.document_path %}
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Attachment:</strong></div>
+                    <div class="col-8">
+                        <a href="{{ url_for('static', filename='uploads/' + leave.document_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-file-earmark"></i> View Document
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+</style>
+{% endblock %}

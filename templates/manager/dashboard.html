@@ -5,6 +5,11 @@
         <h2 class="greeting">{{ greeting_data.greeting }}</h2>
         <p class="sub-greeting">{{ greeting_data.holiday_message }}</p>
     </div>
+    <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+            <i class="bi bi-file-earmark-text"></i> View Team Leaves Report
+        </button>
+    </div>
 </div>
 
 <div class="row">
@@ -72,6 +77,62 @@
     </div>
 </div>
 
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Team Leaves Report Filters</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label for="filterType" class="form-label">Time Period</label>
+                        <select class="form-select" id="filterType" name="filter_type">
+                            <option value="all">All Time</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="year">This Year</option>
+                            <option value="custom">Custom Date Range</option>
+                        </select>
+                    </div>
+                    
+                    <div id="customDateRange" style="display: none;">
+                        <div class="mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="start_date">
+                        </div>
+                        <div class="mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="end_date">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="statusFilter" class="form-label">Status Filter</label>
+                        <select class="form-select" id="statusFilter" name="status">
+                            <option value="all" selected>All Status</option>
+                            <option value="PENDING">Pending Only</option>
+                            <option value="APPROVED">Approved Only</option>
+                            <option value="REJECTED">Rejected Only</option>
+                        </select>
+                    </div>
+                </form>
+                <div class="alert alert-info">
+                    <small><i class="bi bi-info-circle"></i> This will display a detailed report page with leave details for all your team members based on the selected filters.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="exportButton">
+                    <i class="bi bi-eye"></i> View Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal for Leave Details -->
 <div class="modal fade" id="leaveDetailModal" tabindex="-1" aria-labelledby="leaveDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -103,6 +164,48 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle custom date range toggle
+        const filterType = document.getElementById('filterType');
+        const customDateRange = document.getElementById('customDateRange');
+        
+        filterType.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customDateRange.style.display = 'block';
+            } else {
+                customDateRange.style.display = 'none';
+            }
+        });
+        
+        // Handle export button click
+        document.getElementById('exportButton').addEventListener('click', function() {
+            const filterTypeValue = document.getElementById('filterType').value;
+            const statusValue = document.getElementById('statusFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            // Validate custom date range
+            if (filterTypeValue === 'custom' && (!startDate || !endDate)) {
+                alert('Please select both start and end dates for custom range.');
+                return;
+            }
+            
+            // Build URL with query parameters
+            const params = new URLSearchParams({
+                filter_type: filterTypeValue,
+                status: statusValue
+            });
+            
+            if (filterTypeValue === 'custom') {
+                params.append('start_date', startDate);
+                params.append('end_date', endDate);
+            }
+            
+            // Navigate to the report page
+            const reportUrl = '/manager/export_team_leaves?' + params.toString();
+            window.location.href = reportUrl;
+        });
+        
+        // Calendar initialization
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -111,18 +214,18 @@
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            events: '{{ url_for("manager.get_team_leaves_for_calendar") }}', // Endpoint to fetch events
+            events: '{{ url_for("manager.get_team_leaves_for_calendar") }}',
             eventClick: function(info) {
                 var event = info.event;
                 var extendedProps = event.extendedProps;
                 var modalActionsFooter = $('#modal-actions-footer');
-                modalActionsFooter.empty(); // Clear previous action buttons
+                modalActionsFooter.empty();
 
                 if (extendedProps.is_holiday) {
                     $('#leaveDetailModalLabel').text('Holiday / Critical Day Details');
                     $('#modal-applicant').text('');
                     $('#modal-type').text(event.title);
-                    $('#modal-dates').text(event.start.toLocaleDateString() + (event.end ? ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString() : '')); // Adjust for exclusive end date
+                    $('#modal-dates').text(event.start.toLocaleDateString() + (event.end ? ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString() : ''));
                     $('#modal-status').text(extendedProps.is_critical ? 'Critical Day' : 'Public Holiday');
                     $('#modal-reason').text('');
                     $('#modal-document-section').hide();
@@ -130,7 +233,7 @@
                     $('#leaveDetailModalLabel').text('Leave Details');
                     $('#modal-applicant').text(event.title.split(' - ')[0]);
                     $('#modal-type').text(extendedProps.type);
-                    $('#modal-dates').text(event.start.toLocaleDateString() + ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString()); // FullCalendar end date is exclusive
+                    $('#modal-dates').text(event.start.toLocaleDateString() + ' - ' + new Date(event.end.getTime() - 86400000).toLocaleDateString());
                     $('#modal-status').text(extendedProps.status);
                     $('#modal-reason').text(extendedProps.reason);
 
@@ -141,7 +244,6 @@
                         $('#modal-document-section').hide();
                     }
 
-                    // Manager specific actions for pending leaves
                     if (extendedProps.is_manager_view && extendedProps.status === 'Pending') {
                         modalActionsFooter.append(`
                             <form action="/manager/leaves/approve/${extendedProps.leave_id}" method="POST" class="d-inline me-2">
